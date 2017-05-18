@@ -129,34 +129,41 @@ class Spinnaker():
                       str(MAX_WAIT_FOR_RUN / 60) + " minutes")
                 print("Considering it as an error")
                 sys.exit(1)
-            status = self.get_last_build().status
-            if "RUNNING" in status:
+            try:
+                status = self.get_last_build().status
+                if "RUNNING" in status:
+                    time.sleep(10)
+                elif "NOT_STARTED" in status:
+                    print("Pipeline has not yet started.")
+                    time.sleep(10)
+                elif "SUCCEEDED" in status:
+                    print("\nCongratulations pipleline run was successful.")
+                    print_passed()
+                    self.get_stages(n=2)
+                    return 0
+                elif "TERMINAL" in status:
+                    print("Pipleline stopped with terminal state. screenshot generated.")
+                    print_failed()
+                    sys.exit(1)
+                else:
+                    print("Error: something went wrong " + status)
+                    sys.exit(2)
+            except:
+                print("Unexpected error:", sys.exc_info()[0])
+                print("Retrying anyway")
                 time.sleep(10)
-            elif "NOT_STARTED" in status:
-                print("Pipeline has not yet started.")
-                time.sleep(10)
-            elif "SUCCEEDED" in status:
-                print("\nCongratulations pipleline run was successful.")
-                print_passed()
-                self.get_stages(n=2)
-                return 0
-            elif "TERMINAL" in status:
-                print("Pipleline stopped with terminal state. screenshot generated.")
-                print_failed()
-                sys.exit(1)
-            else:
-                print("Error: something went wrong " + status)
-                sys.exit(2)
 
     def get_last_build(self):
         execution_summary_xp = "//div[contains(concat(' ',@class,' '), ' execution ')][1]//div[@class='execution-summary']"
         execution_summary = wait_for_xpath_presence(
             self.driver, execution_summary_xp)
+        execution_summary_text = execution_summary.text
 
         trigger_details_xp = "//div[contains(concat(' ',@class,' '), ' execution ')][1]//ul[@class='trigger-details']"
         trigger_details = wait_for_xpath_presence(
             self.driver, trigger_details_xp)
-        self.build = Build(trigger_details.text, execution_summary.text)
+        trigger_details_text = trigger_details.text
+        self.build = Build(trigger_details_text, execution_summary_text)
         time.sleep(1)
         detail_xpath = "//div[contains(concat(' ',@class,' '), ' execution ')][1]//execution-status//div/a[contains(., 'Details')]"
         e = wait_for_xpath_presence(self.driver, detail_xpath)
