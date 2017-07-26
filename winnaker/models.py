@@ -38,8 +38,9 @@ class Spinnaker():
         time.sleep(1)
         self.driver.get(cfg_spinnaker_url)
         self.wait = WebDriverWait(self.driver, 10)
-        if not os.path.exists(cfg_output_files_path):
-            os.makedirs(cfg_output_files_path)
+        self.screenshot_dir = cfg_output_files_path
+        if not os.path.exists(self.screenshot_dir):
+            os.makedirs(self.screenshot_dir)
 
     def login(self):
         self.check_page_contains_error()
@@ -49,14 +50,13 @@ class Spinnaker():
                 cfg_spinnaker_username))
         e.send_keys(cfg_spinnaker_username)
         e = wait_for_xpath_presence(self.driver, cfg_passwordbox_xpath)
-        self.driver.save_screenshot(join(
-            cfg_output_files_path, "login.png"))
+        self.save_screenshot("login.png")
         e.send_keys(cfg_spinnaker_password)
         e = wait_for_xpath_presence(self.driver, cfg_signin_button_xpath)
         e.click()
         logging.info(
             "- Logged in to the spinnaker instance at {}".format(cfg_spinnaker_url))
-        self.driver.save_screenshot(join(cfg_output_files_path, "login2.png"))
+        self.save_screenshot("login2.png")
         time.sleep(3)
 
     def get_application(self, appname):
@@ -68,9 +68,7 @@ class Spinnaker():
         e.send_keys(appname)
         e.send_keys(Keys.RETURN)
         time.sleep(1)
-        self.driver.save_screenshot(join(
-            cfg_output_files_path,
-            "applications.png"))
+        self.save_screenshot("applications.png")
         app_xpath = "//a[contains (.,'" + appname + "')]"
         e = wait_for_xpath_presence(self.driver, app_xpath)
         e.click()
@@ -98,8 +96,7 @@ class Spinnaker():
                 self.driver, checkbox, be_clickable=True)
             e.click()
         time.sleep(2)
-        self.driver.save_screenshot(
-            join(cfg_output_files_path, "pipelines.png"))
+        self.save_screenshot("pipelines.png")
         logging.info(
             "- Selected pipeline: {} successfully".format(pipelinename))
 
@@ -120,8 +117,7 @@ class Spinnaker():
                     self.driver, cfg_froce_rebake_xpath, be_clickable=True)
                 logging.info("Checking force bake option")
                 e.click()
-            self.driver.save_screenshot(
-                join(cfg_output_files_path, "force_bake_check.png"))
+            self.save_screenshot("force_bake_check.png")
 
         run_xpath = "//button[@type='submit' and contains(.,'Run')]/span[1]"
         e = wait_for_xpath_presence(self.driver, run_xpath, be_clickable=True)
@@ -177,9 +173,7 @@ class Spinnaker():
         self.build = Build(trigger_details_text, execution_summary_text)
         time.sleep(1)
         e = wait_for_xpath_presence(self.driver, cfg_detail_xpath)
-        self.driver.save_screenshot(join(
-            cfg_output_files_path,
-            "last_build_status.png"))
+        self.save_screenshot("last_build_status.png")
         return self.build
 
     # TODO Get all the stages automaticly
@@ -208,12 +202,7 @@ class Spinnaker():
                             sys.exit(1)
                 except TimeoutException:
                     continue
-            self.driver.save_screenshot(
-                join(
-                    cfg_output_files_path,
-                    "stage_" +
-                    str(i) +
-                    ".png"))
+            self.save_screenshot("stage_" + str(i) + ".png")
 
     def check_page_contains_error(self):
         for error in ERROR_LIST.keys():
@@ -227,6 +216,13 @@ class Spinnaker():
                 return True
             assert error not in get_body_text(self.driver)
 
+    def update_screenshot_dir(self, subdir):
+        self.screenshot_dir = join(self.screenshot_dir, subdir)
+        if not os.path.exists(self.screenshot_dir):
+            os.makedirs(self.screenshot_dir)
+
+    def save_screenshot(self, filename):
+        self.driver.save_screenshot(join(self.screenshot_dir, filename))
 
 # Represents a build of a pipeline
 class Build():
